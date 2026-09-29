@@ -1,0 +1,10 @@
+bin/
+obj/
+build_files/
+external/
+.vs/
+*.o
+*.obj
+*.exe
+!tools/premake/premake5.exe
+*.log
