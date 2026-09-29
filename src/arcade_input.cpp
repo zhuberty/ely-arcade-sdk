@@ -5,7 +5,7 @@
 
 #include "raylib.h"
 
-namespace ely
+namespace arcade
 {
 namespace
 {
@@ -83,4 +83,4 @@ bool Check(Player player, Action action, bool pressedOnly)
 bool IsActionPressed(Player player, Action action) { return Check(player, action, true);  }
 bool IsActionDown(Player player, Action action)    { return Check(player, action, false); }
 
-} // namespace ely
+} // namespace arcade

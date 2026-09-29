@@ -1,22 +1,22 @@
--- ely-arcade-sdk -- premake/ely_sdk.lua
+-- ely-arcade-sdk -- premake/arcade_sdk.lua
 --
 -- Shared premake helpers used by ely-arcade-platform and by every game repo
 -- so the raylib / SDK / platform-specific build logic lives in ONE place.
 --
 -- Usage (from a premake5.lua that lives in a "build/" folder):
 --
---     dofile("<path-to-sdk>/premake/ely_sdk.lua")
---     ely.prepare_dirs()
+--     dofile("<path-to-sdk>/premake/arcade_sdk.lua")
+--     arcade.prepare_dirs()
 --     workspace "MyWorkspace" ... end
---     ely.raylib_project()
---     ely.sdk_project("<path-to-sdk>")
---     ely.app_project("my-game", "../src", "<path-to-sdk>")
+--     arcade.raylib_project()
+--     arcade.sdk_project("<path-to-sdk>")
+--     arcade.app_project("my-game", "../src", "<path-to-sdk>")
 --
 -- All paths are relative to the calling premake5.lua (i.e. the build/ dir).
 
-ely = ely or {}
+arcade = arcade or {}
 
-ely.raylib_dir = "external/raylib-master"
+arcade.raylib_dir = "external/raylib-master"
 
 -- ---------------------------------------------------------------------------
 -- Command line options (same as the original raylib-quickstart)
@@ -68,7 +68,7 @@ newoption
 -- raylib download
 -- ---------------------------------------------------------------------------
 
-function ely.download_progress(total, current)
+function arcade.download_progress(total, current)
     local ratio = current / total;
     ratio = math.min(math.max(ratio, 0), 1);
     local percent = math.floor(ratio * 100);
@@ -81,7 +81,7 @@ local function check_raylib()
         if(not os.isfile("raylib-master.zip")) then
             print("Raylib not found, downloading from github")
             local result_str, response_code = http.download("https://github.com/raysan5/raylib/archive/refs/heads/master.zip", "raylib-master.zip", {
-                progress = ely.download_progress,
+                progress = arcade.download_progress,
                 headers = { "From: Premake", "Referer: Premake" }
             })
         end
@@ -94,7 +94,7 @@ end
 
 -- Creates build_files/ and external/ next to the calling premake5.lua and
 -- makes sure the raylib sources are present.
-function ely.prepare_dirs()
+function arcade.prepare_dirs()
     if (os.isdir('build_files') == false) then
         os.mkdir('build_files')
     end
@@ -106,7 +106,7 @@ function ely.prepare_dirs()
 end
 
 -- Standard workspace (configs, platforms, output dir). Call after prepare_dirs().
-function ely.workspace(name)
+function arcade.workspace(name)
     workspace (name)
         location "../"
         configurations { "Debug", "Release"}
@@ -140,7 +140,7 @@ end
 -- Platform defines / system libraries
 -- ---------------------------------------------------------------------------
 
-function ely.platform_defines()
+function arcade.platform_defines()
     filter {"options:backend=glfw"}
         defines{"PLATFORM_DESKTOP"}
 
@@ -184,7 +184,7 @@ function ely.platform_defines()
 end
 
 -- System libraries an executable needs to link raylib.
-function ely.link_system_libs()
+function arcade.link_system_libs()
     filter "system:linux"
         links {"pthread", "m", "dl", "rt"}
 
@@ -213,13 +213,13 @@ end
 -- ---------------------------------------------------------------------------
 
 -- Static library containing raylib itself.
-function ely.raylib_project()
-    local raylib_dir = ely.raylib_dir
+function arcade.raylib_project()
+    local raylib_dir = arcade.raylib_dir
 
     project "raylib"
         kind "StaticLib"
 
-        ely.platform_defines()
+        arcade.platform_defines()
 
         location "build_files/"
 
@@ -268,7 +268,7 @@ end
 
 -- The SDK itself, built as a static library that apps link against.
 --   sdkDir : path to the ely-arcade-sdk checkout, relative to build/
-function ely.sdk_project(sdkDir)
+function arcade.sdk_project(sdkDir)
     project "ely-arcade-sdk"
         kind "StaticLib"
         location "build_files/"
@@ -279,10 +279,10 @@ function ely.sdk_project(sdkDir)
         cppdialect "C++17"
 
         files { sdkDir .. "/src/**.cpp", sdkDir .. "/include/**.h", sdkDir .. "/include/**.hpp" }
-        includedirs { sdkDir .. "/include", ely.raylib_dir .. "/src" }
+        includedirs { sdkDir .. "/include", arcade.raylib_dir .. "/src" }
 
         flags { "ShadowedVariables" }
-        ely.platform_defines()
+        arcade.platform_defines()
 
         filter "action:vs*"
             defines{"_WINSOCK_DEPRECATED_NO_WARNINGS", "_CRT_SECURE_NO_WARNINGS"}
@@ -295,14 +295,14 @@ end
 --   name   : project / binary name
 --   srcDir : the app's source dir, relative to build/
 --   sdkDir : path to the ely-arcade-sdk checkout, relative to build/
-function ely.app_project(name, srcDir, sdkDir)
+function arcade.app_project(name, srcDir, sdkDir)
     project (name)
         kind "ConsoleApp"
         location "build_files/"
         targetdir "../bin/%{cfg.buildcfg}"
 
         files { srcDir .. "/**.c", srcDir .. "/**.cpp", srcDir .. "/**.h", srcDir .. "/**.hpp" }
-        includedirs { srcDir, sdkDir .. "/include", ely.raylib_dir .. "/src" }
+        includedirs { srcDir, sdkDir .. "/include", arcade.raylib_dir .. "/src" }
 
         -- ely-arcade-sdk depends on raylib, so it must come first for static linking.
         links { "ely-arcade-sdk", "raylib" }
@@ -311,7 +311,7 @@ function ely.app_project(name, srcDir, sdkDir)
         cppdialect "C++17"
 
         flags { "ShadowedVariables" }
-        ely.platform_defines()
+        arcade.platform_defines()
 
         filter "action:vs*"
             defines{"_WINSOCK_DEPRECATED_NO_WARNINGS", "_CRT_SECURE_NO_WARNINGS"}
@@ -320,6 +320,6 @@ function ely.app_project(name, srcDir, sdkDir)
             buildoptions { "/Zc:__cplusplus" }
         filter {}
 
-        ely.link_system_libs()
+        arcade.link_system_libs()
 end
 

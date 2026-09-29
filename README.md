@@ -8,11 +8,11 @@ every game (e.g. `game-thick-cube`, `edibles-raylib`).
 
 | Path | What |
 |---|---|
-| `include/arcade_input.h`, `src/arcade_input.cpp` | Action-based input (`ely::IsActionPressed(Player, Action)`) covering keyboard, arcade joystick encoders that emulate a keyboard, and gamepads. |
+| `include/arcade_input.h`, `src/arcade_input.cpp` | Action-based input (`arcade::IsActionPressed(Player, Action)`) covering keyboard, arcade joystick encoders that emulate a keyboard, and gamepads. |
 | `include/resource_dir.h` | `SearchAndSetResourceDir()` helper (from raylib-extras). |
 | `include/rlights.h` | raylib lighting helper (define `RLIGHTS_IMPLEMENTATION` in exactly one .cpp). |
 | `include/earcut.hpp` | mapbox earcut polygon triangulation. |
-| `premake/ely_sdk.lua` | Shared premake helpers (`ely.raylib_project`, `ely.sdk_project`, `ely.app_project`). |
+| `premake/arcade_sdk.lua` | Shared premake helpers (`arcade.raylib_project`, `arcade.sdk_project`, `arcade.app_project`). |
 | `tools/premake/` | premake5 binaries for Windows / Linux / macOS. |
 
 Planned (not yet implemented): user accounts, save data / storage, API access.
@@ -23,14 +23,14 @@ Add this repo as a git submodule (conventionally at `sdk/`), then in the
 project's `build/premake5.lua`:
 
 ```lua
-dofile("../sdk/premake/ely_sdk.lua")
-ely.prepare_dirs()                       -- creates build_files/, external/, downloads raylib
+dofile("../sdk/premake/arcade_sdk.lua")
+arcade.prepare_dirs()                       -- creates build_files/, external/, downloads raylib
 
-ely.workspace("my-game")                 -- configs, platforms, output dir
+arcade.workspace("my-game")                 -- configs, platforms, output dir
 
-ely.raylib_project()
-ely.sdk_project("../sdk")
-ely.app_project("my-game", "../src", "../sdk")
+arcade.raylib_project()
+arcade.sdk_project("../sdk")
+arcade.app_project("my-game", "../src", "../sdk")
 ```
 
 Generate makefiles and build:
@@ -47,8 +47,8 @@ make config=release_x64
 ```cpp
 #include "arcade_input.h"
 
-if (ely::IsActionPressed(ely::Player::One, ely::Action::Up)) { ... }
-if (ely::IsActionPressed(ely::Player::Any, ely::Action::Confirm)) { ... }
+if (arcade::IsActionPressed(arcade::Player::One, arcade::Action::Up)) { ... }
+if (arcade::IsActionPressed(arcade::Player::Any, arcade::Action::Confirm)) { ... }
 ```
 
 See `include/arcade_input.h` for the binding table.

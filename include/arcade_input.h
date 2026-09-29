@@ -22,7 +22,7 @@
 
 #pragma once
 
-namespace ely
+namespace arcade
 {
 
 enum class Player
@@ -50,4 +50,4 @@ bool IsActionPressed(Player player, Action action);
 // True while the action is held.
 bool IsActionDown(Player player, Action action);
 
-} // namespace ely
+} // namespace arcade
