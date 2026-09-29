@@ -105,6 +105,37 @@ function ely.prepare_dirs()
     check_raylib()
 end
 
+-- Standard workspace (configs, platforms, output dir). Call after prepare_dirs().
+function ely.workspace(name)
+    workspace (name)
+        location "../"
+        configurations { "Debug", "Release"}
+        platforms { "x64", "x86", "ARM64"}
+
+        defaultplatform ("x64")
+
+        filter "configurations:Debug"
+            defines { "DEBUG" }
+            symbols "On"
+
+        filter "configurations:Release"
+            defines { "NDEBUG" }
+            optimize "On"
+
+        filter {"configurations:Release", "action:vs*"}
+           linktimeoptimization "On"
+
+        filter { "platforms:x64" }
+            architecture "x86_64"
+
+        filter { "platforms:ARM64" }
+            architecture "ARM64"
+
+        filter {}
+
+        targetdir "bin/%{cfg.buildcfg}/"
+end
+
 -- ---------------------------------------------------------------------------
 -- Platform defines / system libraries
 -- ---------------------------------------------------------------------------

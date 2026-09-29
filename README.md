@@ -26,11 +26,7 @@ project's `build/premake5.lua`:
 dofile("../sdk/premake/ely_sdk.lua")
 ely.prepare_dirs()                       -- creates build_files/, external/, downloads raylib
 
-workspace "my-game"
-    location "../"
-    configurations { "Debug", "Release" }
-    platforms { "x64", "x86", "ARM64" }
-    -- (see ely-arcade-platform/build/premake5.lua for the full workspace block)
+ely.workspace("my-game")                 -- configs, platforms, output dir
 
 ely.raylib_project()
 ely.sdk_project("../sdk")
