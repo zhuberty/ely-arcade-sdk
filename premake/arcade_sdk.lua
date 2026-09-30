@@ -68,6 +68,8 @@ newoption
 -- raylib download
 -- ---------------------------------------------------------------------------
 
+---@param total number Total bytes to download
+---@param current number Bytes downloaded so far
 function arcade.download_progress(total, current)
     local ratio = current / total;
     ratio = math.min(math.max(ratio, 0), 1);
@@ -94,6 +96,7 @@ end
 
 -- Creates build_files/ and external/ next to the calling premake5.lua and
 -- makes sure the raylib sources are present.
+---@return nil
 function arcade.prepare_dirs()
     if (os.isdir('build_files') == false) then
         os.mkdir('build_files')
@@ -106,6 +109,7 @@ function arcade.prepare_dirs()
 end
 
 -- Standard workspace (configs, platforms, output dir). Call after prepare_dirs().
+---@param name string Workspace name
 function arcade.workspace(name)
     workspace (name)
         location "../"
@@ -140,6 +144,7 @@ end
 -- Platform defines / system libraries
 -- ---------------------------------------------------------------------------
 
+---Adds per-backend / per-graphics-API / per-OS defines via filters. Ends with filter {}.
 function arcade.platform_defines()
     filter {"options:backend=glfw"}
         defines{"PLATFORM_DESKTOP"}
@@ -268,6 +273,7 @@ end
 
 -- The SDK itself, built as a static library that apps link against.
 --   sdkDir : path to the ely-arcade-sdk checkout, relative to build/
+---@param sdkDir string Path to the ely-arcade-sdk checkout, relative to build/
 function arcade.sdk_project(sdkDir)
     project "ely-arcade-sdk"
         kind "StaticLib"
@@ -295,6 +301,9 @@ end
 --   name   : project / binary name
 --   srcDir : the app's source dir, relative to build/
 --   sdkDir : path to the ely-arcade-sdk checkout, relative to build/
+---@param name string Project / binary name
+---@param srcDir string App source dir, relative to build/
+---@param sdkDir string Path to the ely-arcade-sdk checkout, relative to build/
 function arcade.app_project(name, srcDir, sdkDir)
     project (name)
         kind "ConsoleApp"

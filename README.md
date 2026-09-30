@@ -42,6 +42,30 @@ cd ..
 make config=release_x64
 ```
 
+## Editor setup (VS Code)
+
+The premake scripts are Lua 5.3 using premake's built-in API, which the Lua
+language server can't see on its own. To get hover signatures and avoid false
+"undefined global" warnings:
+
+1. Install the **Lua** extension (`sumneko.lua`).
+2. Add a `.luarc.json` at the root of your project (next to the `sdk/` submodule):
+
+   ```json
+   {
+     "runtime.version": "Lua 5.3",
+     "workspace.library": ["sdk/premake/luals"],
+     "workspace.ignoreDir": ["build/external", "bin", ".git"],
+     "diagnostics.globals": ["arcade"]
+   }
+   ```
+
+3. Reload the window.
+
+`premake/luals/premake.lua` holds hand-written definitions for the premake API
+subset these scripts use. If LuaLS reports an undefined global or field, add it
+there (check signatures against https://premake.github.io/docs/).
+
 ## Input example
 
 ```cpp
