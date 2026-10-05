@@ -2,7 +2,7 @@
 //
 // Device-independent input for arcade games and the arcade menu.
 //
-// Games ask for logical *actions* (Up, Confirm, Back, ...) for a given
+// Games ask for logical *actions* (Up, Down, Left, Right) for a given
 // *player* instead of polling raw keys, so the same game works with the
 // keyboard during development and with the cabinet's joysticks/buttons.
 //
@@ -15,7 +15,7 @@
 //         arcade::UpdateInput();                         // once per frame, first thing
 //
 //         if (arcade::IsActionDown(arcade::Player::One, arcade::Action::Up))   { ... }
-//         if (arcade::IsActionPressed(arcade::Player::Any, arcade::Action::Confirm)) { ... }
+//         if (arcade::IsActionPressed(arcade::Player::Any, arcade::Action::Left)) { ... }
 //         if (arcade::IsButtonPressed(arcade::Player::Two, 3)) { ... }  // raw button 4
 //     }
 //
@@ -26,18 +26,15 @@
 //        player. Each has a 4-way joystick on axes 0/1 and 8 buttons (0-7).
 //        Joystick: X axis = Left/Right, Y axis = Up/Down, +-0.5 threshold,
 //                  Up/Down wins on diagonals.
-//        Buttons:  Button 1 (index 0) -> Restart
-//                  Button 2 (index 1) -> Confirm
-//                  Button 8 (index 7) -> Back
-//                  All eight are also available raw via IsButtonPressed/Down.
+//        Buttons:  None are assigned to any action. All eight are available
+//                  raw via IsButtonPressed/Down; each game decides their meaning.
 //        Encoders are auto-detected by device name; the first one found is
 //        Player::One and the second is Player::Two. See "Player assignment".
 //   2. Keyboard
-//        Player::One  W A S D, Space (confirm), Left Ctrl (back), R (restart)
-//        Player::Two  arrow keys, Enter / Keypad Enter (confirm),
-//                     Right Ctrl (back), R (restart)
+//        Player::One  W A S D (directions only)
+//        Player::Two  arrow keys (directions only)
 //   3. Standard (mapped) gamepads, raylib gamepad 0 = One, 1 = Two
-//        d-pad, A (confirm), B (back), X (restart)
+//        d-pad (directions only)
 //
 //   Player::Any  true when either player triggers the action. Use it for
 //                menus and single-player modes.
@@ -75,9 +72,6 @@ enum class Action
     Down,
     Left,
     Right,
-    Confirm,
-    Back,
-    Restart,
     Count
 };
 

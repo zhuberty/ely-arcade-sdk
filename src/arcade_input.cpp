@@ -40,9 +40,6 @@ const Binding kBindings[kPlayerSlots][kActionCount] =
         /* Down    */ { { KEY_S, KEY_NULL, KEY_NULL },              GAMEPAD_BUTTON_LEFT_FACE_DOWN  },
         /* Left    */ { { KEY_A, KEY_NULL, KEY_NULL },              GAMEPAD_BUTTON_LEFT_FACE_LEFT  },
         /* Right   */ { { KEY_D, KEY_NULL, KEY_NULL },              GAMEPAD_BUTTON_LEFT_FACE_RIGHT },
-        /* Confirm */ { { KEY_SPACE, KEY_NULL, KEY_NULL },          GAMEPAD_BUTTON_RIGHT_FACE_DOWN },
-        /* Back    */ { { KEY_LEFT_CONTROL, KEY_NULL, KEY_NULL },   GAMEPAD_BUTTON_RIGHT_FACE_RIGHT },
-        /* Restart */ { { KEY_R, KEY_NULL, KEY_NULL },              GAMEPAD_BUTTON_RIGHT_FACE_LEFT },
     },
     // ---- Player Two: arrow keys + gamepad 1 ----
     {
@@ -50,9 +47,6 @@ const Binding kBindings[kPlayerSlots][kActionCount] =
         /* Down    */ { { KEY_DOWN, KEY_NULL, KEY_NULL },           GAMEPAD_BUTTON_LEFT_FACE_DOWN  },
         /* Left    */ { { KEY_LEFT, KEY_NULL, KEY_NULL },           GAMEPAD_BUTTON_LEFT_FACE_LEFT  },
         /* Right   */ { { KEY_RIGHT, KEY_NULL, KEY_NULL },          GAMEPAD_BUTTON_LEFT_FACE_RIGHT },
-        /* Confirm */ { { KEY_ENTER, KEY_KP_ENTER, KEY_NULL },      GAMEPAD_BUTTON_RIGHT_FACE_DOWN },
-        /* Back    */ { { KEY_RIGHT_CONTROL, KEY_NULL, KEY_NULL },  GAMEPAD_BUTTON_RIGHT_FACE_RIGHT },
-        /* Restart */ { { KEY_R, KEY_NULL, KEY_NULL },              GAMEPAD_BUTTON_RIGHT_FACE_LEFT },
     },
 };
 
@@ -67,18 +61,6 @@ constexpr double kRescanSeconds = 1.0;    // hot-plug detection interval
 const char* const kEncoderNameHints[] =
 {
     "usb gamepad", "zero delay", "easyget", "arcade", "dragonrise", "generic usb joystick",
-};
-
-// Encoder button used for each action, -1 = none (joystick axes). Order matches Action.
-const int kEncoderActionButton[kActionCount] =
-{
-    /* Up      */ -1,
-    /* Down    */ -1,
-    /* Left    */ -1,
-    /* Right   */ -1,
-    /* Confirm */  1,   // Button 2
-    /* Back    */  7,   // Button 8
-    /* Restart */  0,   // Button 1
 };
 
 struct EncoderState
@@ -227,12 +209,6 @@ void PollSlot(int slot)
             else if (ay >  kAxisThreshold) e.actionDown[static_cast<int>(Action::Down)]  = true;
             else if (ax < -kAxisThreshold) e.actionDown[static_cast<int>(Action::Left)]  = true;
             else if (ax >  kAxisThreshold) e.actionDown[static_cast<int>(Action::Right)] = true;
-        }
-
-        for (int a = 0; a < kActionCount; ++a)
-        {
-            int b = kEncoderActionButton[a];
-            if (b >= 0 && e.buttonDown[b]) e.actionDown[a] = true;
         }
     }
 

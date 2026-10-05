@@ -72,7 +72,7 @@ there (check signatures against https://premake.github.io/docs/).
 #include "arcade_input.h"
 
 if (arcade::IsActionPressed(arcade::Player::One, arcade::Action::Up)) { ... }
-if (arcade::IsActionPressed(arcade::Player::Any, arcade::Action::Confirm)) { ... }
+if (arcade::IsButtonPressed(arcade::Player::One, 0)) { ... }  // raw button 1, unassigned
 ```
 
 See `include/arcade_input.h` for the binding table.
