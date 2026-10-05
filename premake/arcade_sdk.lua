@@ -285,7 +285,8 @@ function arcade.sdk_project(sdkDir)
         cppdialect "C++17"
 
         files { sdkDir .. "/src/**.cpp", sdkDir .. "/include/**.h", sdkDir .. "/include/**.hpp" }
-        includedirs { sdkDir .. "/include", arcade.raylib_dir .. "/src" }
+        -- GLFW headers: arcade_input.cpp reads the encoders' raw joystick state.
+        includedirs { sdkDir .. "/include", arcade.raylib_dir .. "/src", arcade.raylib_dir .. "/src/external/glfw/include" }
 
         flags { "ShadowedVariables" }
         arcade.platform_defines()
