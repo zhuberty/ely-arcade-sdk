@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
+#include <ctime>
 #include <functional>
 #include <utility>
 #include "rlgl.h"
@@ -41,6 +42,7 @@ private:
     int fps = 60;
     double maxDurationSeconds = 120.0; // <= 0 means unlimited
     long long framesCaptured = 0;
+    std::string outputDir; // empty = default <project root>/recordings
     std::function<void(const VideoRecorder &)> overlayDrawer;
 
 public:
@@ -83,11 +85,26 @@ public:
         Stop();
     }
 
-    // Start recording a new video file
-    bool Start(const std::string &filename, int windowWidth, int windowHeight, int targetFps)
+    // Override the output directory (default: <project root>/recordings)
+    void SetOutputDir(const std::string &dir) { outputDir = dir; }
+
+    // Start recording a new video file. If filename is empty, the file is saved to the output
+    // directory (default <project root>/recordings) named by the current date and time.
+    bool Start(int windowWidth, int windowHeight, int targetFps, std::string filename = "")
     {
         if (recording)
             return false;
+
+        if (filename.empty())
+        {
+            std::string dir = outputDir.empty() ? std::string(GetApplicationDirectory()) + "../../recordings" : outputDir;
+            MakeDirectory(dir.c_str());
+
+            char stamp[32];
+            std::time_t now = std::time(nullptr);
+            std::strftime(stamp, sizeof(stamp), "%Y-%m-%d_%H-%M-%S", std::localtime(&now));
+            filename = dir + "/" + stamp + ".mp4";
+        }
 
         width = windowWidth;
         height = windowHeight;
@@ -101,8 +118,8 @@ public:
                               " -r " + std::to_string(fps) +
                               " -i - -vf scale=out_color_matrix=bt709:out_range=tv"
                                " -c:v libx264 -pix_fmt yuv420p -b:v 5000k"
-                               " -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv " +
-                               filename;
+                               " -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv \"" +
+                               filename + "\"";
 
         // Open pipe to FFmpeg process
         ffmpegPipe.reset(popen(command.c_str(), "w"));
