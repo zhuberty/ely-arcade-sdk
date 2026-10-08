@@ -8,6 +8,10 @@
 #include <cstring>
 #include <cstdint>
 #include <cstdio>
+#include <cmath>
+#include <functional>
+#include <utility>
+#include "rlgl.h"
 
 #ifdef _WIN32
 #define popen _popen
@@ -34,9 +38,44 @@ private:
     int width = 0;
     int height = 0;
     bool recording = false;
+    int fps = 60;
+    double maxDurationSeconds = 120.0; // <= 0 means unlimited
+    long long framesCaptured = 0;
+    std::function<void(const VideoRecorder &)> overlayDrawer;
 
 public:
-    VideoRecorder() = default;
+    VideoRecorder()
+    {
+        overlayDrawer = [](const VideoRecorder &r)
+        { r.DrawDefaultOverlay(); };
+    }
+
+    // Override the maximum recording length (seconds). Use <= 0 for no limit.
+    void SetMaxDuration(double seconds) { maxDurationSeconds = seconds; }
+    double GetMaxDuration() const { return maxDurationSeconds; }
+
+    // Replace the on-screen recording indicator drawing logic.
+    void SetOverlayDrawer(std::function<void(const VideoRecorder &)> drawer) { overlayDrawer = std::move(drawer); }
+
+    // Seconds of video recorded so far
+    double GetElapsedSeconds() const { return fps > 0 ? (double)framesCaptured / fps : 0.0; }
+
+    // Draws the recording indicator. Call after CaptureFrame() and before EndDrawing()
+    // so it appears on screen but is not part of the recorded video.
+    void DrawOverlay() const
+    {
+        if (recording && overlayDrawer)
+            overlayDrawer(*this);
+    }
+
+    // Default indicator: a red dot that blinks on and off (top-right corner)
+    void DrawDefaultOverlay() const
+    {
+        const double blinkPeriod = 1.0; // seconds per on/off cycle
+        bool on = std::fmod(GetElapsedSeconds(), blinkPeriod) < blinkPeriod * 0.5;
+        if (on)
+            DrawCircle(GetScreenWidth() - 24, 24, 8, RED);
+    }
 
     // Destructor automatically finalizes video if still recording when game exits
     ~VideoRecorder()
@@ -45,13 +84,15 @@ public:
     }
 
     // Start recording a new video file
-    bool Start(const std::string &filename, int windowWidth, int windowHeight, int fps)
+    bool Start(const std::string &filename, int windowWidth, int windowHeight, int targetFps)
     {
         if (recording)
             return false;
 
         width = windowWidth;
         height = windowHeight;
+        fps = targetFps;
+        framesCaptured = 0;
         pixelBuffer.resize(width * height);
 
         // Build the FFmpeg streaming command string
@@ -82,8 +123,18 @@ public:
         if (!recording || !ffmpegPipe)
             return;
 
+        // Flush any pending draw calls so the framebuffer holds the full scene
+        rlDrawRenderBatchActive();
+
         // 1. Grab screen data from GPU
         Image screenImg = LoadImageFromScreen();
+
+        // Skip frames if the window was resized (size must match the ffmpeg stream)
+        if (screenImg.width != width || screenImg.height != height)
+        {
+            UnloadImage(screenImg);
+            return;
+        }
 
         // 2. LoadImageFromScreen already returns an upright image (raylib flips it internally),
         //    so no additional vertical flip is needed.
@@ -100,6 +151,14 @@ public:
 
         // 5. Pipe the right-side-up frame array to FFmpeg
         std::fwrite(pixelBuffer.data(), sizeof(uint32_t), pixelBuffer.size(), ffmpegPipe.get());
+        framesCaptured++;
+
+        // Auto-stop once the maximum duration is reached
+        if (maxDurationSeconds > 0.0 && GetElapsedSeconds() >= maxDurationSeconds)
+        {
+            std::cout << "[VideoRecorder] Max duration reached, stopping.\n";
+            Stop();
+        }
     }
 
     // Force finalize the file and shut down the FFmpeg process
