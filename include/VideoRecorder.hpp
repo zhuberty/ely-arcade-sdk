@@ -58,7 +58,10 @@ public:
         std::string command = "ffmpeg -y -f rawvideo -pix_fmt rgba -s " +
                               std::to_string(width) + "x" + std::to_string(height) +
                               " -r " + std::to_string(fps) +
-                              " -i - -c:v libx264 -pix_fmt yuv420p -b:v 5000k " + filename;
+                              " -i - -vf scale=out_color_matrix=bt709:out_range=tv"
+                               " -c:v libx264 -pix_fmt yuv420p -b:v 5000k"
+                               " -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv " +
+                               filename;
 
         // Open pipe to FFmpeg process
         ffmpegPipe.reset(popen(command.c_str(), "w"));
@@ -87,6 +90,10 @@ public:
 
         // 3. Copy image into our safe vector array buffer
         std::memcpy(pixelBuffer.data(), screenImg.data, width * height * sizeof(uint32_t));
+
+        // // 3b. Force opaque alpha (blending can leave alpha < 255 in the framebuffer)
+        // for (uint32_t &px : pixelBuffer)
+        //     px |= 0xFF000000u;
 
         // 4. Instantly free GPU memory to prevent memory leaks
         UnloadImage(screenImg);
