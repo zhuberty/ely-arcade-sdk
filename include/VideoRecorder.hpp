@@ -79,6 +79,38 @@ public:
             DrawCircle(GetScreenWidth() - 24, 24, 8, RED);
     }
 
+    // Call once per frame before BeginDrawing(). Toggles recording on CTRL+R and caps the
+    // frame rate to the video fps while recording (uncapped again when it stops).
+    void HandleInput(int windowWidth, int windowHeight, int targetFps)
+    {
+        if (!(IsKeyPressed(KEY_R) && (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))))
+            return;
+
+        if (!recording)
+        {
+            if (Start(windowWidth, windowHeight, targetFps))
+                SetTargetFPS(targetFps);
+        }
+        else
+        {
+            Stop();
+            SetTargetFPS(0);
+        }
+    }
+
+    // Call once per frame after all game drawing and just before EndDrawing(). Captures the
+    // frame, then draws the recording overlay so it is visible but not in the video.
+    void EndFrame()
+    {
+        if (recording)
+        {
+            CaptureFrame();
+            if (!recording) // auto-stopped at max duration
+                SetTargetFPS(0);
+        }
+        DrawOverlay();
+    }
+
     // Destructor automatically finalizes video if still recording when game exits
     ~VideoRecorder()
     {
