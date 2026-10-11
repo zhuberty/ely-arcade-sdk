@@ -56,6 +56,15 @@ public:
     void SetMaxDuration(double seconds) { maxDurationSeconds = seconds; }
     double GetMaxDuration() const { return maxDurationSeconds; }
 
+    // Set the capture FPS used for recordings (default 60; values <= 0 are ignored).
+    // Takes effect on the next recording started.
+    void SetCaptureFps(int captureFps)
+    {
+        if (captureFps > 0)
+            fps = captureFps;
+    }
+    int GetCaptureFps() const { return fps; }
+
     // Replace the on-screen recording indicator drawing logic.
     void SetOverlayDrawer(std::function<void(const VideoRecorder &)> drawer) { overlayDrawer = std::move(drawer); }
 
@@ -80,16 +89,16 @@ public:
     }
 
     // Call once per frame before BeginDrawing(). Toggles recording on CTRL+R and caps the
-    // frame rate to the video fps while recording (uncapped again when it stops).
-    void HandleInput(int windowWidth, int windowHeight, int targetFps)
+    // frame rate to the capture fps (see SetCaptureFps) while recording (uncapped again when it stops).
+    void HandleInput()
     {
         if (!(IsKeyPressed(KEY_R) && (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))))
             return;
 
         if (!recording)
         {
-            if (Start(windowWidth, windowHeight, targetFps))
-                SetTargetFPS(targetFps);
+            if (Start())
+                SetTargetFPS(fps);
         }
         else
         {
@@ -122,7 +131,8 @@ public:
 
     // Start recording a new video file. If filename is empty, the file is saved to the output
     // directory (default <project root>/recordings) named by the current date and time.
-    bool Start(int windowWidth, int windowHeight, int targetFps, std::string filename = "")
+    // The video size is the current window size; the FPS is set via SetCaptureFps().
+    bool Start(std::string filename = "")
     {
         if (recording)
             return false;
@@ -138,9 +148,8 @@ public:
             filename = dir + "/" + stamp + ".mp4";
         }
 
-        width = windowWidth;
-        height = windowHeight;
-        fps = targetFps;
+        width = GetScreenWidth();
+        height = GetScreenHeight();
         framesCaptured = 0;
         pixelBuffer.resize(width * height);
 
