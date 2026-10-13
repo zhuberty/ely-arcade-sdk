@@ -18,6 +18,11 @@ arcade = arcade or {}
 
 arcade.raylib_dir = "external/raylib-master"
 
+-- Shared raylib. Linux machines set up by ely-arcade-fai have ONE prebuilt raylib in /usr/local
+-- (lib/libraylib.a, include/{raylib,raymath,rcamera,rlgl}.h, include/GLFW/glfw3*.h). When it is
+-- there, projects link against it instead of downloading and compiling raylib themselves.
+arcade.shared_raylib_prefix = "/usr/local"
+
 -- ---------------------------------------------------------------------------
 -- Command line options (same as the original raylib-quickstart)
 -- ---------------------------------------------------------------------------
@@ -64,6 +69,90 @@ newoption
     default = "off"
 }
 
+newoption
+{
+    trigger = "raylib",
+    value = "SOURCE",
+    description = "where raylib comes from",
+    allowed = {
+        { "auto", "Use the shared raylib in /usr/local when it is usable, otherwise download and build it"},
+        { "shared", "Require the shared raylib in /usr/local (error if it cannot be used)"},
+        { "download", "Always download raylib and build it inside the project"}
+    },
+    default = "auto"
+}
+
+-- ---------------------------------------------------------------------------
+-- Shared raylib (prebuilt, installed once per machine)
+-- ---------------------------------------------------------------------------
+
+-- Why the shared copy cannot be used, or nil if it can. It was built as desktop GLFW + X11 +
+-- OpenGL 3.3 for the machine's own architecture, so any other request needs a project-local build.
+local function shared_raylib_problem()
+    local prefix = arcade.shared_raylib_prefix
+    if not os.istarget("linux") then
+        return "the target OS is not Linux"
+    end
+    if (_OPTIONS["backend"] or "glfw") ~= "glfw" then
+        return "it was built with the glfw backend, not " .. _OPTIONS["backend"]
+    end
+    if (_OPTIONS["graphics"] or "opengl33") ~= "opengl33" then
+        return "it was built for opengl33, not " .. _OPTIONS["graphics"]
+    end
+    if (_OPTIONS["wayland"] or "off") ~= "off" then
+        return "it was built for X11, not Wayland"
+    end
+    for _, f in ipairs({ "/lib/libraylib.a", "/include/raylib.h", "/include/rlgl.h", "/include/GLFW/glfw3.h" }) do
+        if not os.isfile(prefix .. f) then
+            return prefix .. f .. " does not exist"
+        end
+    end
+    return nil
+end
+
+local use_shared = nil
+
+-- True if projects should link the shared raylib instead of building their own. Decided once.
+---@return boolean
+function arcade.use_shared_raylib()
+    if use_shared == nil then
+        local mode = _OPTIONS["raylib"] or "auto"
+        if mode == "download" then
+            use_shared = false
+        else
+            local problem = shared_raylib_problem()
+            if problem == nil then
+                use_shared = true
+                local version = io.readfile(arcade.shared_raylib_prefix .. "/share/raylib/VERSION")
+                print("Using shared raylib " .. (version and version:gsub("%s+", "") or "(unknown version)")
+                    .. " from " .. arcade.shared_raylib_prefix)
+            elseif mode == "shared" then
+                error("--raylib=shared, but the shared raylib cannot be used: " .. problem)
+            else
+                use_shared = false
+                print("Shared raylib not used (" .. problem .. "); building raylib inside the project")
+            end
+        end
+    end
+    return use_shared
+end
+
+-- Include directories for raylib's headers (raylib.h, rlgl.h, ...), in either mode.
+--   withGlfw : also add the GLFW headers (arcade_input.cpp reads the encoders' raw joystick state)
+---@param withGlfw boolean
+---@return table
+function arcade.raylib_includedirs(withGlfw)
+    if arcade.use_shared_raylib() then
+        -- GLFW/glfw3.h sits under the same include dir as raylib.h.
+        return { arcade.shared_raylib_prefix .. "/include" }
+    end
+    local dirs = { arcade.raylib_dir .. "/src" }
+    if withGlfw then
+        table.insert(dirs, arcade.raylib_dir .. "/src/external/glfw/include")
+    end
+    return dirs
+end
+
 -- ---------------------------------------------------------------------------
 -- raylib download
 -- ---------------------------------------------------------------------------
@@ -95,11 +184,15 @@ local function check_raylib()
 end
 
 -- Creates build_files/ and external/ next to the calling premake5.lua and
--- makes sure the raylib sources are present.
+-- makes sure the raylib sources are present (unless the shared raylib is used, see
+-- arcade.use_shared_raylib(): then nothing is downloaded).
 ---@return nil
 function arcade.prepare_dirs()
     if (os.isdir('build_files') == false) then
         os.mkdir('build_files')
+    end
+    if arcade.use_shared_raylib() then
+        return
     end
     if (os.isdir('external') == false) then
         os.mkdir('external')
@@ -217,8 +310,12 @@ end
 -- Projects
 -- ---------------------------------------------------------------------------
 
--- Static library containing raylib itself.
+-- Static library containing raylib itself. Defines no project when the shared raylib is used
+-- (see arcade.use_shared_raylib()): the apps then link /usr/local/lib/libraylib.a directly.
 function arcade.raylib_project()
+    if arcade.use_shared_raylib() then
+        return
+    end
     local raylib_dir = arcade.raylib_dir
 
     project "raylib"
@@ -286,7 +383,7 @@ function arcade.sdk_project(sdkDir)
 
         files { sdkDir .. "/src/**.cpp", sdkDir .. "/include/**.h", sdkDir .. "/include/**.hpp" }
         -- GLFW headers: arcade_input.cpp reads the encoders' raw joystick state.
-        includedirs { sdkDir .. "/include", arcade.raylib_dir .. "/src", arcade.raylib_dir .. "/src/external/glfw/include" }
+        includedirs(table.join({ sdkDir .. "/include" }, arcade.raylib_includedirs(true)))
 
         flags { "ShadowedVariables" }
         arcade.platform_defines()
@@ -312,10 +409,14 @@ function arcade.app_project(name, srcDir, sdkDir)
         targetdir "../bin/%{cfg.buildcfg}"
 
         files { srcDir .. "/**.c", srcDir .. "/**.cpp", srcDir .. "/**.h", srcDir .. "/**.hpp" }
-        includedirs { srcDir, sdkDir .. "/include", arcade.raylib_dir .. "/src" }
+        includedirs(table.join({ srcDir, sdkDir .. "/include" }, arcade.raylib_includedirs(false)))
 
         -- ely-arcade-sdk depends on raylib, so it must come first for static linking.
         links { "ely-arcade-sdk", "raylib" }
+        if arcade.use_shared_raylib() then
+            -- No "raylib" project exists in this mode, so the name resolves to -lraylib.
+            libdirs { arcade.shared_raylib_prefix .. "/lib" }
+        end
 
         cdialect "C17"
         cppdialect "C++17"

@@ -212,6 +212,19 @@ function os.host() end
 function os.ishost(id) end
 
 -- ---------------------------------------------------------------------------
+-- io / table extensions
+-- ---------------------------------------------------------------------------
+
+---@param p string
+---@return string? contents nil if the file cannot be read
+function io.readfile(p) end
+
+---Concatenates arrays into a new array.
+---@param ... table
+---@return table
+function table.join(...) end
+
+-- ---------------------------------------------------------------------------
 -- zip
 -- ---------------------------------------------------------------------------
 

@@ -24,7 +24,7 @@ project's `build/premake5.lua`:
 
 ```lua
 dofile("../sdk/premake/arcade_sdk.lua")
-arcade.prepare_dirs()                       -- creates build_files/, external/, downloads raylib
+arcade.prepare_dirs()                       -- creates build_files/; downloads raylib unless a shared one is used
 
 arcade.workspace("my-game")                 -- configs, platforms, output dir
 
@@ -41,6 +41,32 @@ cd build
 cd ..
 make config=release_x64
 ```
+
+### Shared raylib
+
+On Linux machines set up by [ely-arcade-fai](https://github.com/zhuberty/ely-arcade-fai), one
+prebuilt raylib lives in `/usr/local` (`lib/libraylib.a`, `include/raylib.h`, `include/rlgl.h`,
+`include/GLFW/glfw3.h`, ...). The premake helpers use it automatically, so a project does not
+download or compile raylib: `prepare_dirs()` skips the download, `raylib_project()` defines no
+project, and the apps link `-lraylib` from `/usr/local/lib`. Nothing changes in a project's
+`premake5.lua`.
+
+The `--raylib` option selects the source:
+
+| `--raylib=` | Behaviour |
+|---|---|
+| `auto` (default) | Use the shared raylib if it is usable, otherwise download and build raylib in the project (as before). |
+| `shared` | Use the shared raylib, or stop with an error saying why it cannot be used. |
+| `download` | Always download and build raylib in the project. |
+
+The shared raylib is only usable on Linux with the defaults (`--backend=glfw`, `--graphics=opengl33`,
+`--wayland=off`), because that is how it was built; any other request falls back to a project-local
+build (or errors with `--raylib=shared`). Windows and macOS always build raylib in the project.
+Premake prints which one it picked. To change the install location, set
+`arcade.shared_raylib_prefix` after `dofile(...)`.
+
+After switching between modes, re-run `premake5 gmake` (and `make clean` if objects were built
+against the other raylib).
 
 ## Editor setup (VS Code)
 
